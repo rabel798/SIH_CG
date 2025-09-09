@@ -38,10 +38,7 @@ instance/
 .env.test.local
 .env.production.local
 
-# User data files
-users.json
-progress_*.json
-results_*.json
+# User data files - REMOVED: Team needs access to user data
 
 # IDE
 .vscode/

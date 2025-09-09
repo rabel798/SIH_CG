@@ -1,7 +1,17 @@
 from flask import render_template, request, redirect, url_for, session, jsonify
 import json
 import os
+import hashlib
+import uuid
 from models import Quiz
+
+def generate_user_id(email):
+    """Generate a unique user ID based on email"""
+    return hashlib.md5(email.encode()).hexdigest()[:12]
+
+def get_user_id_from_session():
+    """Get user ID from session"""
+    return session.get('user_id')
 
 def init_routes(app):
     @app.route('/')
@@ -40,7 +50,9 @@ def init_routes(app):
                 users = json.load(f)
                 for user in users:
                     if user['email'] == email and user['password'] == password:
-                        session['user_id'] = user['email']
+                        user_id = generate_user_id(email)
+                        session['user_id'] = user_id
+                        session['user_email'] = email
                         session['user_name'] = user['name']
                         
                         if remember_me:
@@ -71,7 +83,9 @@ def init_routes(app):
         with open(users_file, 'w') as f:
             json.dump(users, f)
         
-        session['user_id'] = email
+        user_id = generate_user_id(email)
+        session['user_id'] = user_id
+        session['user_email'] = email
         session['user_name'] = name
         return jsonify({'success': True, 'redirect': '/'})
 
@@ -91,7 +105,8 @@ def init_routes(app):
             return jsonify({'success': False, 'message': 'Not logged in'})
         
         data = request.get_json()
-        progress_file = f"progress_{session['user_id']}.json"
+        user_id = get_user_id_from_session()
+        progress_file = f"progress_{user_id}.json"
         
         with open(progress_file, 'w') as f:
             json.dump(data, f)
@@ -103,7 +118,8 @@ def init_routes(app):
         if 'user_id' not in session:
             return jsonify({'progress': None})
         
-        progress_file = f"progress_{session['user_id']}.json"
+        user_id = get_user_id_from_session()
+        progress_file = f"progress_{user_id}.json"
         if os.path.exists(progress_file):
             with open(progress_file, 'r') as f:
                 progress = json.load(f)
@@ -115,7 +131,8 @@ def init_routes(app):
     def results():
         recommendations = []
         if 'user_id' in session:
-            results_file = f"results_{session['user_id']}.json"
+            user_id = get_user_id_from_session()
+            results_file = f"results_{user_id}.json"
             if os.path.exists(results_file):
                 with open(results_file, 'r') as f:
                     data = json.load(f)
@@ -171,7 +188,8 @@ def init_routes(app):
         top_careers = sorted_careers[:3]
         
         if 'user_id' in session:
-            results_file = f"results_{session['user_id']}.json"
+            user_id = get_user_id_from_session()
+            results_file = f"results_{user_id}.json"
             with open(results_file, 'w') as f:
                 json.dump({'careers': top_careers, 'answers': answers}, f)
         
