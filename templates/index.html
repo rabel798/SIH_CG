@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}CareerGuide - Your Career, Your Path{% endblock %}
+
+{% block content %}
+<section style="position: relative; padding: 5rem 0 8rem; background: linear-gradient(135deg, var(--background) 0%, var(--muted) 100%);">
+    <div class="container px-4 text-center">
+        <div class="max-w-4xl mx-auto">
+            <h1 style="font-size: 2.5rem; font-weight: bold; margin-bottom: 1.5rem; text-wrap: balance;">
+                Your Career, Your Path
+            </h1>
+            <p style="font-size: 1.25rem; color: var(--muted-foreground); margin-bottom: 2rem; text-wrap: pretty; max-width: 42rem; margin-left: auto; margin-right: auto;">
+                Discover your perfect career path with our comprehensive guidance system designed specifically for 10th and 12th grade students.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <a href="/auth" class="btn btn-primary btn-lg">Start Now</a>
+                <a href="/colleges" class="btn btn-outline btn-lg">Explore Colleges</a>
+            </div>
+        </div>
+    </div>
+
+    <div style="position: absolute; top: 5rem; left: 2.5rem; width: 5rem; height: 5rem; background-color: rgba(139, 92, 246, 0.1); border-radius: 50%; filter: blur(20px);"></div>
+    <div style="position: absolute; bottom: 5rem; right: 2.5rem; width: 8rem; height: 8rem; background-color: rgba(139, 92, 246, 0.05); border-radius: 50%; filter: blur(40px);"></div>
+</section>
+
+<section class="py-20">
+    <div class="container px-4">
+        <div class="text-center mb-8">
+            <h2 style="font-size: 2rem; font-weight: bold; margin-bottom: 1rem;">Why Choose CareerGuide?</h2>
+            <p style="color: var(--muted-foreground); max-width: 42rem; margin: 0 auto;">
+                Our comprehensive platform provides personalized career guidance tailored to your interests and aptitudes.
+            </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 3rem;">
+            <div class="card">
+                <div class="card-content">
+                    <div style="width: 3rem; height: 3rem; background-color: var(--accent); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                        <svg style="width: 1.5rem; height: 1.5rem; color: var(--accent-foreground);" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">Personalized Assessment</h3>
+                    <p style="color: var(--muted-foreground);">Take our comprehensive quiz to discover your strengths and interests.</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-content">
+                    <div style="width: 3rem; height: 3rem; background-color: var(--accent); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                        <svg style="width: 1.5rem; height: 1.5rem; color: var(--accent-foreground);" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
+                        </svg>
+                    </div>
+                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">Expert Guidance</h3>
+                    <p style="color: var(--muted-foreground);">Get recommendations from career counseling experts and industry professionals.</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-content">
+                    <div style="width: 3rem; height: 3rem; background-color: var(--accent); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                        <svg style="width: 1.5rem; height: 1.5rem; color: var(--accent-foreground);" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z"/>
+                        </svg>
+                    </div>
+                    <h3 style="font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem;">College Recommendations</h3>
+                    <p style="color: var(--muted-foreground);">Find the best colleges and courses that align with your career goals.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

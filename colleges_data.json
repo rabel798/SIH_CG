@@ -1,0 +1,82 @@
+[
+  {
+    "id": 1,
+    "name": "Indian Institute of Technology (IIT)",
+    "description": "Premier engineering and technology institutes",
+    "details": "Leading institutions for engineering, technology, and applied sciences with world-class faculty and research facilities.",
+    "popular_courses": ["Computer Science", "Mechanical Engineering", "Electrical Engineering"],
+    "entrance_exam": "JEE Advanced",
+    "website": "https://www.iit.ac.in",
+    "category": "Engineering"
+  },
+  {
+    "id": 2,
+    "name": "All India Institute of Medical Sciences (AIIMS)",
+    "description": "Premier medical education institutes",
+    "details": "Top medical colleges offering undergraduate and postgraduate programs in medicine and healthcare.",
+    "popular_courses": ["MBBS", "MD", "MS", "Nursing"],
+    "entrance_exam": "NEET",
+    "website": "https://www.aiims.edu",
+    "category": "Medical"
+  },
+  {
+    "id": 3,
+    "name": "Indian Institute of Management (IIM)",
+    "description": "Leading business schools",
+    "details": "Premier management institutes offering MBA and other business programs with excellent placement records.",
+    "popular_courses": ["MBA", "PGDM", "Executive Programs"],
+    "entrance_exam": "CAT",
+    "website": "https://www.iim.ac.in",
+    "category": "Management"
+  },
+  {
+    "id": 4,
+    "name": "Delhi University (DU)",
+    "description": "Comprehensive university education",
+    "details": "One of India's largest universities offering diverse undergraduate and postgraduate programs.",
+    "popular_courses": ["Arts", "Science", "Commerce", "Law"],
+    "entrance_exam": "CUET",
+    "website": "https://www.du.ac.in",
+    "category": "General"
+  },
+  {
+    "id": 5,
+    "name": "National Institute of Design (NID)",
+    "description": "Premier design institutes",
+    "details": "Leading design schools offering programs in various design disciplines and creative fields.",
+    "popular_courses": ["Product Design", "Communication Design", "Fashion Design"],
+    "entrance_exam": "NID DAT",
+    "website": "https://www.nid.edu",
+    "category": "Design"
+  },
+  {
+    "id": 6,
+    "name": "Indian Statistical Institute (ISI)",
+    "description": "Statistics and mathematics excellence",
+    "details": "Renowned institute for statistics, mathematics, and computer science with strong research focus.",
+    "popular_courses": ["Statistics", "Mathematics", "Computer Science"],
+    "entrance_exam": "ISI Admission Test",
+    "website": "https://www.isical.ac.in",
+    "category": "Science"
+  },
+  {
+    "id": 7,
+    "name": "Indian Institute of Science (IISc)",
+    "description": "Premier research institute",
+    "details": "Leading research institution offering advanced programs in science, engineering, and technology.",
+    "popular_courses": ["Physics", "Chemistry", "Mathematics", "Computer Science"],
+    "entrance_exam": "IISc Entrance Exam",
+    "website": "https://www.iisc.ac.in",
+    "category": "Research"
+  },
+  {
+    "id": 8,
+    "name": "Jawaharlal Nehru University (JNU)",
+    "description": "Leading social sciences university",
+    "details": "Premier university known for its excellence in social sciences, international studies, and languages.",
+    "popular_courses": ["International Relations", "Political Science", "Economics", "Languages"],
+    "entrance_exam": "JNUEE",
+    "website": "https://www.jnu.ac.in",
+    "category": "Social Sciences"
+  }
+]

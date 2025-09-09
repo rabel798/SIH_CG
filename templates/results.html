@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Quiz Results - CareerGuide{% endblock %}
+
+{% block content %}
+<section class="py-20">
+    <div class="container px-4 max-w-4xl mx-auto">
+        <div class="text-center mb-8">
+            <h1 style="font-size: 2rem; font-weight: bold; margin-bottom: 1rem;">Your Career Recommendations</h1>
+            <p style="color: var(--muted-foreground); max-width: 42rem; margin: 0 auto;">
+                Based on your quiz responses, here are the career paths that align with your interests and aptitudes.
+            </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 3rem;">
+            {% for career in recommendations %}
+            <div class="card">
+                <div class="card-content">
+                    <div style="width: 3rem; height: 3rem; background-color: var(--accent); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem;">
+                        <svg style="width: 1.5rem; height: 1.5rem; color: var(--accent-foreground);" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                    </div>
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">{{ career }}</h3>
+                    <p style="color: var(--muted-foreground); font-size: 0.875rem;">
+                        Explore this career path and discover the educational requirements and opportunities.
+                    </p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="text-center">
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <a href="/colleges" class="btn btn-primary btn-lg">Explore Colleges</a>
+                <a href="/quiz" class="btn btn-outline btn-lg">Retake Quiz</a>
+            </div>
+        </div>
+
+        <div class="mt-8 card" style="background-color: var(--muted);">
+            <div class="card-content text-center">
+                <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">Next Steps</h3>
+                <p style="color: var(--muted-foreground); font-size: 0.875rem;">
+                    Research these career paths further, explore college programs, and consider speaking with professionals in these fields.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

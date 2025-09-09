@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Career Quiz - CareerGuide{% endblock %}
+
+{% block content %}
+<section class="py-20">
+    <div class="container px-4 max-w-2xl mx-auto">
+        <div class="mb-8">
+            <div class="flex justify-between items-center mb-4">
+                <h1 style="font-size: 1.5rem; font-weight: bold;">Career Aptitude Quiz</h1>
+                <span id="questionCounter" style="font-size: 0.875rem; color: var(--muted-foreground);">
+                    Question 1 of {{ questions|length }}
+                </span>
+            </div>
+            <div class="progress">
+                <div id="progressBar" class="progress-bar" style="width: {{ (1 / questions|length * 100) }}%;"></div>
+            </div>
+        </div>
+
+        <div class="card mb-8">
+            <div class="card-header">
+                <h2 id="questionText" class="card-title text-balance">{{ questions[0].question }}</h2>
+                <p class="card-description">Select the option that best describes your preference</p>
+                <p style="font-size: 0.875rem; color: var(--muted-foreground); margin-top: 0.5rem;">
+                    💡 Tip: Click anywhere on an option, or use keys 1-5 to select quickly
+                </p>
+            </div>
+            <div class="card-content">
+                <div class="radio-group" id="answerOptions">
+                    <div class="radio-item">
+                        <input type="radio" name="answer" value="5" id="option-5" class="radio-input">
+                        <label for="option-5" class="radio-label">Strongly Agree</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" name="answer" value="4" id="option-4" class="radio-input">
+                        <label for="option-4" class="radio-label">Agree</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" name="answer" value="3" id="option-3" class="radio-input">
+                        <label for="option-3" class="radio-label">Neutral</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" name="answer" value="2" id="option-2" class="radio-input">
+                        <label for="option-2" class="radio-label">Disagree</label>
+                    </div>
+                    <div class="radio-item">
+                        <input type="radio" name="answer" value="1" id="option-1" class="radio-input">
+                        <label for="option-1" class="radio-label">Strongly Disagree</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center">
+            <button id="prevBtn" class="btn btn-outline" disabled>Previous</button>
+
+            <div class="flex gap-2" id="progressDots">
+            </div>
+
+            <button id="nextBtn" class="btn btn-primary">Next</button>
+        </div>
+
+        <div class="mt-8 card" style="background-color: var(--muted);">
+            <div class="card-content text-center">
+                <p style="font-size: 0.875rem; color: var(--muted-foreground);">
+                    Your progress is automatically saved. You can return to complete the quiz later if needed.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const questions = {{ questions | tojson }};
+    let currentQuestion = 0;
+    let answers = [];
+
+    loadProgress();
+
+    function loadProgress() {
+        fetch('/get_quiz_progress')
+            .then(response => response.json())
+            .then(data => {
+                answers = data.answers || [];
+                currentQuestion = data.currentQuestion || 0;
+                updateUI();
+                loadCurrentAnswer();
+            });
+    }
+
+    function updateUI() {
+        document.getElementById('questionCounter').textContent = 
+            `Question ${currentQuestion + 1} of ${questions.length}`;
+        
+        const progress = ((currentQuestion + 1) / questions.length) * 100;
+        document.getElementById('progressBar').style.width = `${progress}%`;
+        
+        document.getElementById('questionText').textContent = questions[currentQuestion].question;
+        
+        document.getElementById('prevBtn').disabled = currentQuestion === 0;
+        document.getElementById('nextBtn').textContent = 
+            currentQuestion === questions.length - 1 ? 'Submit Quiz' : 'Next';
+        
+        updateProgressDots();
+    }
+
+    function updateProgressDots() {
+        const dotsContainer = document.getElementById('progressDots');
+        dotsContainer.innerHTML = '';
+        
+        for (let i = 0; i < questions.length; i++) {
+            const dot = document.createElement('div');
+            dot.style.cssText = `
+                width: 0.5rem; 
+                height: 0.5rem; 
+                border-radius: 50%; 
+                background-color: ${i <= currentQuestion ? 'var(--accent)' : 'var(--muted)'};
+                ${i === currentQuestion ? 'box-shadow: 0 0 0 2px var(--accent), 0 0 0 4px var(--background);' : ''}
+            `;
+            dotsContainer.appendChild(dot);
+        }
+    }
+
+    function loadCurrentAnswer() {
+        const existingAnswer = answers.find(a => a.questionId === questions[currentQuestion].id);
+        if (existingAnswer) {
+            const radio = document.querySelector(`input[value="${existingAnswer.answer}"]`);
+            if (radio) radio.checked = true;
+        } else {
+            document.querySelectorAll('input[name="answer"]').forEach(radio => {
+                radio.checked = false;
+            });
+        }
+        updateRadioSelection();
+    }
+
+    function saveCurrentAnswer() {
+        const selectedAnswer = document.querySelector('input[name="answer"]:checked');
+        if (!selectedAnswer) return false;
+
+        const questionId = questions[currentQuestion].id;
+        const answerValue = parseInt(selectedAnswer.value);
+
+        answers = answers.filter(a => a.questionId !== questionId);
+        answers.push({ questionId, answer: answerValue });
+
+        fetch('/save_quiz_progress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ answers, currentQuestion })
+        });
+
+        return true;
+    }
+
+    document.getElementById('nextBtn').addEventListener('click', () => {
+        const selectedAnswer = document.querySelector('input[name="answer"]:checked');
+        if (!selectedAnswer) {
+            showToast('Please select an answer before proceeding.', 'error');
+            return;
+        }
+
+        saveCurrentAnswer();
+
+        if (currentQuestion < questions.length - 1) {
+            currentQuestion++;
+            updateUI();
+            loadCurrentAnswer();
+        } else {
+            if (answers.length < questions.length) {
+                showToast('Please answer all questions before submitting.', 'error');
+                return;
+            }
+            
+            showToast('Quiz completed! Analyzing your responses...', 'success');
+            
+            fetch('/calculate_results', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answers: answers })
+            })
+            .then(response => response.json())
+            .then(data => {
+                setTimeout(() => window.location.href = '/results', 1000);
+            })
+            .catch(error => {
+                console.error('Error calculating results:', error);
+                setTimeout(() => window.location.href = '/results', 1000);
+            });
+        }
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+        saveCurrentAnswer();
+        
+        if (currentQuestion > 0) {
+            currentQuestion--;
+            updateUI();
+            loadCurrentAnswer();
+        }
+    });
+
+    function setupRadioInteractions() {
+        const radioItems = document.querySelectorAll('.radio-item');
+        
+        radioItems.forEach(item => {
+            const radio = item.querySelector('.radio-input');
+            const label = item.querySelector('.radio-label');
+            
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                radio.checked = true;
+                updateRadioSelection();
+            });
+            
+            radio.addEventListener('change', () => {
+                updateRadioSelection();
+            });
+        });
+    }
+
+    function updateRadioSelection() {
+        const radioItems = document.querySelectorAll('.radio-item');
+        
+        radioItems.forEach(item => {
+            const radio = item.querySelector('.radio-input');
+            if (radio.checked) {
+                item.classList.add('selected');
+            } else {
+                item.classList.remove('selected');
+            }
+        });
+    }
+
+    function addKeyboardNavigation() {
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '1' && e.key <= '5') {
+                const value = e.key;
+                const radio = document.querySelector(`input[value="${value}"]`);
+                if (radio) {
+                    radio.checked = true;
+                    updateRadioSelection();
+                }
+            } else if (e.key === 'Enter') {
+                const nextBtn = document.getElementById('nextBtn');
+                if (nextBtn && !nextBtn.disabled) {
+                    nextBtn.click();
+                }
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                const prevBtn = document.getElementById('prevBtn');
+                if (prevBtn && !prevBtn.disabled) {
+                    prevBtn.click();
+                }
+            } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                const nextBtn = document.getElementById('nextBtn');
+                if (nextBtn && !nextBtn.disabled) {
+                    nextBtn.click();
+                }
+            }
+        });
+    }
+
+    updateUI();
+    setupRadioInteractions();
+    addKeyboardNavigation();
+</script>
+{% endblock %}

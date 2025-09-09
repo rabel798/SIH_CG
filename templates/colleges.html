@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+
+{% block title %}Colleges - CareerGuide{% endblock %}
+
+{% block content %}
+<section class="py-20">
+    <div class="container px-4">
+        <div class="text-center mb-8">
+            <h1 style="font-size: 2rem; font-weight: bold; margin-bottom: 1rem;">Top Colleges & Universities</h1>
+            <p style="color: var(--muted-foreground); max-width: 42rem; margin: 0 auto;">
+                Discover the best educational institutions that align with your career goals and academic interests.
+            </p>
+        </div>
+
+        <div class="text-center mb-6">
+            <div class="card" style="max-width: 42rem; margin: 0 auto;">
+                <div class="card-content">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Filter by Category</h3>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
+                        <button onclick="filterColleges('all')" class="btn btn-primary filter-btn" data-category="all">All</button>
+                        <button onclick="filterColleges('Engineering')" class="btn btn-outline filter-btn" data-category="Engineering">Engineering</button>
+                        <button onclick="filterColleges('Medical')" class="btn btn-outline filter-btn" data-category="Medical">Medical</button>
+                        <button onclick="filterColleges('Management')" class="btn btn-outline filter-btn" data-category="Management">Management</button>
+                        <button onclick="filterColleges('Design')" class="btn btn-outline filter-btn" data-category="Design">Design</button>
+                        <button onclick="filterColleges('Science')" class="btn btn-outline filter-btn" data-category="Science">Science</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="collegesContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 1.5rem;">
+            <div class="text-center" style="grid-column: 1 / -1;">
+                <div class="card" style="max-width: 42rem; margin: 0 auto;">
+                    <div class="card-content">
+                        <div style="width: 3rem; height: 3rem; background-color: var(--accent); border-radius: var(--radius); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                            <svg style="width: 1.5rem; height: 1.5rem; color: var(--accent-foreground);" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.293l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">Loading Colleges...</h3>
+                        <p style="color: var(--muted-foreground); font-size: 0.875rem;">
+                            Please wait while we fetch the latest college information.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-center mt-8">
+            <div class="card" style="background-color: var(--muted); max-width: 42rem; margin: 0 auto;">
+                <div class="card-content">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem;">Need Personalized Recommendations?</h3>
+                    <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-bottom: 1rem;">
+                        Take our career quiz to get college recommendations tailored to your interests and career goals.
+                    </p>
+                    <a href="/quiz" class="btn btn-primary">Take Career Quiz</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let allColleges = [];
+    let currentFilter = 'all';
+
+    async function loadColleges() {
+        try {
+            const response = await fetch('/api/colleges');
+            const data = await response.json();
+            
+            if (data.success) {
+                allColleges = data.colleges;
+                displayColleges(allColleges);
+            } else {
+                showError('Failed to load colleges: ' + data.message);
+            }
+        } catch (error) {
+            console.error('Error loading colleges:', error);
+            showError('Failed to load colleges. Please try again later.');
+        }
+    }
+
+    function filterColleges(category) {
+        currentFilter = category;
+        
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        filterButtons.forEach(btn => {
+            if (btn.dataset.category === category) {
+                btn.className = 'btn btn-primary filter-btn';
+            } else {
+                btn.className = 'btn btn-outline filter-btn';
+            }
+        });
+
+        let filteredColleges = allColleges;
+        if (category !== 'all') {
+            filteredColleges = allColleges.filter(college => college.category === category);
+        }
+        
+        displayColleges(filteredColleges);
+    }
+
+    function displayColleges(colleges) {
+        const container = document.getElementById('collegesContainer');
+        container.innerHTML = '';
+
+        colleges.forEach(college => {
+            const collegeCard = document.createElement('div');
+            collegeCard.className = 'card';
+            collegeCard.innerHTML = `
+                <div class="card-header">
+                    <h3 class="card-title">${college.name}</h3>
+                    <p class="card-description">${college.description}</p>
+                </div>
+                <div class="card-content">
+                    <p style="color: var(--muted-foreground); margin-bottom: 1rem;">
+                        ${college.details}
+                    </p>
+                    <div style="margin-bottom: 1rem;">
+                        <strong>Popular Courses:</strong> ${college.popular_courses.join(', ')}
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <strong>Entrance Exam:</strong> ${college.entrance_exam}
+                    </div>
+                    <div style="margin-bottom: 1rem;">
+                        <strong>Category:</strong> ${college.category}
+                    </div>
+                    <a href="${college.website}" target="_blank" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">
+                        Visit Official Website
+                    </a>
+                </div>
+            `;
+            container.appendChild(collegeCard);
+        });
+    }
+
+    function showError(message) {
+        const container = document.getElementById('collegesContainer');
+        container.innerHTML = `
+            <div class="text-center" style="grid-column: 1 / -1;">
+                <div class="card" style="max-width: 42rem; margin: 0 auto; border-color: #ef4444;">
+                    <div class="card-content">
+                        <div style="width: 3rem; height: 3rem; background-color: #ef4444; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                            <svg style="width: 1.5rem; height: 1.5rem; color: white;" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 0.5rem; color: #ef4444;">Error Loading Colleges</h3>
+                        <p style="color: var(--muted-foreground); font-size: 0.875rem;">
+                            ${message}
+                        </p>
+                        <button onclick="loadColleges()" class="btn btn-outline" style="margin-top: 1rem;">Retry</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    document.addEventListener('DOMContentLoaded', loadColleges);
+</script>
+{% endblock %}
