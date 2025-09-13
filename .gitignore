@@ -38,7 +38,6 @@ instance/
 .env.test.local
 .env.production.local
 
-# User data files - REMOVED: Team needs access to user data
 
 # IDE
 .vscode/

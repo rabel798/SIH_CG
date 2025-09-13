@@ -4,19 +4,35 @@ import os
 import hashlib
 import uuid
 from models import Quiz
-
-def generate_user_id(email):
-    """Generate a unique user ID based on email"""
-    return hashlib.md5(email.encode()).hexdigest()[:12]
+from database import (
+    init_database, generate_user_id, create_user, authenticate_user,
+    save_quiz_progress, get_quiz_progress, clear_quiz_progress,
+    save_quiz_results, get_quiz_results, has_completed_quiz
+)
 
 def get_user_id_from_session():
     """Get user ID from session"""
     return session.get('user_id')
 
 def init_routes(app):
+    # Initialize database on startup
+    init_database()
+    
     @app.route('/')
     def index():
         return render_template('index.html')
+
+    @app.route('/check_login_status')
+    def check_login_status():
+        if 'user_id' in session:
+            user_id = get_user_id_from_session()
+            is_first_time = not has_completed_quiz(user_id)
+            return jsonify({
+                'logged_in': True,
+                'user_name': session.get('user_name'),
+                'is_first_time': is_first_time
+            })
+        return jsonify({'logged_in': False})
 
     @app.route('/colleges')
     def colleges():
@@ -40,25 +56,24 @@ def init_routes(app):
     @app.route('/login', methods=['POST'])
     def login():
         data = request.get_json()
+        name = data.get('name')
         email = data.get('email')
         password = data.get('password')
-        remember_me = data.get('rememberMe', False)
         
-        users_file = 'users.json'
-        if os.path.exists(users_file):
-            with open(users_file, 'r') as f:
-                users = json.load(f)
-                for user in users:
-                    if user['email'] == email and user['password'] == password:
-                        user_id = generate_user_id(email)
-                        session['user_id'] = user_id
-                        session['user_email'] = email
-                        session['user_name'] = user['name']
-                        
-                        if remember_me:
-                            session.permanent = True
-                        
-                        return jsonify({'success': True, 'redirect': '/'})
+        # Authenticate user
+        user = authenticate_user(email, password)
+        if user:
+            user_id = generate_user_id(email)
+            session['user_id'] = user_id
+            session['user_email'] = email
+            session['user_name'] = name  # Use the name from login form
+            
+            
+            # Check if this is first-time login
+            is_first_time = not has_completed_quiz(user_id)
+            session['is_first_time'] = is_first_time
+            
+            return jsonify({'success': True, 'redirect': '/', 'is_first_time': is_first_time})
         
         return jsonify({'success': False, 'message': 'Invalid credentials'})
 
@@ -69,35 +84,51 @@ def init_routes(app):
         email = data.get('email')
         password = data.get('password')
         
-        users_file = 'users.json'
-        users = []
-        if os.path.exists(users_file):
-            with open(users_file, 'r') as f:
-                users = json.load(f)
-        
-        for user in users:
-            if user['email'] == email:
-                return jsonify({'success': False, 'message': 'User already exists'})
-        
-        users.append({'name': name, 'email': email, 'password': password})
-        with open(users_file, 'w') as f:
-            json.dump(users, f)
-        
-        user_id = generate_user_id(email)
-        session['user_id'] = user_id
-        session['user_email'] = email
-        session['user_name'] = name
-        return jsonify({'success': True, 'redirect': '/'})
+        # Create new user
+        success = create_user(name, email, password)
+        if success:
+            user_id = generate_user_id(email)
+            session['user_id'] = user_id
+            session['user_email'] = email
+            session['user_name'] = name
+            session['is_first_time'] = True  # Registration is always first-time
+            
+            
+            return jsonify({'success': True, 'redirect': '/', 'is_first_time': True})
+        else:
+            return jsonify({'success': False, 'message': 'User already exists'})
 
     @app.route('/logout')
     def logout():
         session.clear()
         return redirect(url_for('index'))
 
+    @app.route('/clear_session')
+    def clear_session():
+        """Clear session data - useful for testing"""
+        session.clear()
+        return jsonify({'success': True, 'message': 'Session cleared'})
+
     @app.route('/quiz')
     def quiz():
-        questions = Quiz.get_questions()
-        return render_template('quiz.html', questions=questions)
+        # Check if user is logged in
+        if 'user_id' not in session:
+            return redirect(url_for('auth'))
+        
+        # Check if this is first-time login
+        user_id = get_user_id_from_session()
+        is_first_time = not has_completed_quiz(user_id)
+        
+        if is_first_time:
+            # First-time users can access quiz
+            questions = Quiz.get_questions()
+            has_completed = False
+        else:
+            # Returning users - check if they have completed the quiz
+            questions = Quiz.get_questions()
+            has_completed = has_completed_quiz(user_id)
+        
+        return render_template('quiz.html', questions=questions, has_completed=has_completed, is_first_time=is_first_time)
 
     @app.route('/save_quiz_progress', methods=['POST'])
     def save_quiz_progress():
@@ -106,10 +137,10 @@ def init_routes(app):
         
         data = request.get_json()
         user_id = get_user_id_from_session()
-        progress_file = f"progress_{user_id}.json"
         
-        with open(progress_file, 'w') as f:
-            json.dump(data, f)
+        # Save progress to database
+        from database import save_quiz_progress as db_save_quiz_progress
+        db_save_quiz_progress(user_id, data.get('answers', []), data.get('currentQuestion', 0))
         
         return jsonify({'success': True})
 
@@ -119,24 +150,43 @@ def init_routes(app):
             return jsonify({'progress': None})
         
         user_id = get_user_id_from_session()
-        progress_file = f"progress_{user_id}.json"
-        if os.path.exists(progress_file):
-            with open(progress_file, 'r') as f:
-                progress = json.load(f)
+        from database import get_quiz_progress as db_get_quiz_progress
+        progress = db_get_quiz_progress(user_id)
+        
+        if progress:
             return jsonify({'progress': progress})
         
         return jsonify({'progress': None})
 
+    @app.route('/clear_quiz_progress', methods=['POST'])
+    def clear_quiz_progress():
+        if 'user_id' not in session:
+            return jsonify({'success': False, 'message': 'Not logged in'})
+        
+        user_id = get_user_id_from_session()
+        from database import clear_quiz_progress as db_clear_quiz_progress
+        db_clear_quiz_progress(user_id)
+        
+        return jsonify({'success': True})
+
     @app.route('/results')
     def results():
+        # Check if user is logged in
+        if 'user_id' not in session:
+            return redirect(url_for('auth'))
+        
+        # Check if this is first-time login
+        user_id = get_user_id_from_session()
+        is_first_time = not has_completed_quiz(user_id)
+        
+        if is_first_time:
+            # First-time users shouldn't access results yet
+            return redirect(url_for('quiz'))
+        
+        results_data = get_quiz_results(user_id)
         recommendations = []
-        if 'user_id' in session:
-            user_id = get_user_id_from_session()
-            results_file = f"results_{user_id}.json"
-            if os.path.exists(results_file):
-                with open(results_file, 'r') as f:
-                    data = json.load(f)
-                    recommendations = [career[0] for career in data.get('careers', [])]
+        if results_data:
+            recommendations = [career[0] for career in results_data.get('careers', [])]
         
         return render_template('results.html', recommendations=recommendations)
 
@@ -189,8 +239,6 @@ def init_routes(app):
         
         if 'user_id' in session:
             user_id = get_user_id_from_session()
-            results_file = f"results_{user_id}.json"
-            with open(results_file, 'w') as f:
-                json.dump({'careers': top_careers, 'answers': answers}, f)
+            save_quiz_results(user_id, top_careers, answers)
         
         return jsonify({'careers': top_careers})

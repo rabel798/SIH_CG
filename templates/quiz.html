@@ -5,7 +5,26 @@
 {% block content %}
 <section class="py-20">
     <div class="container px-4 max-w-2xl mx-auto">
-        <div class="mb-8">
+        {% if has_completed %}
+        <!-- Quiz Already Completed View -->
+        <div class="text-center mb-8">
+            <div style="width: 4rem; height: 4rem; background-color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem;">
+                <svg style="width: 2rem; height: 2rem; color: var(--accent-foreground);" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <h1 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">Quiz Already Completed!</h1>
+            <p style="color: var(--muted-foreground); margin-bottom: 2rem;">
+                You have already completed the career aptitude quiz. You can view your results or retake the quiz if you'd like to update your responses.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <a href="/results" class="btn btn-primary btn-lg">View Results</a>
+                <button id="retakeQuizBtn" class="btn btn-outline btn-lg">Retake Quiz</button>
+            </div>
+        </div>
+        {% else %}
+        <!-- Quiz Interface -->
+        <div class="mb-8" id="quizInterface" style="display: block;">
             <div class="flex justify-between items-center mb-4">
                 <h1 style="font-size: 1.5rem; font-weight: bold;">Career Aptitude Quiz</h1>
                 <span id="questionCounter" style="font-size: 0.875rem; color: var(--muted-foreground);">
@@ -16,7 +35,9 @@
                 <div id="progressBar" class="progress-bar" style="width: {{ (1 / questions|length * 100) }}%;"></div>
             </div>
         </div>
+        {% endif %}
 
+        {% if not has_completed %}
         <div class="card mb-8">
             <div class="card-header">
                 <h2 id="questionText" class="card-title text-balance">{{ questions[0].question }}</h2>
@@ -67,6 +88,7 @@
                 </p>
             </div>
         </div>
+        {% endif %}
     </div>
 </section>
 {% endblock %}
@@ -74,10 +96,143 @@
 {% block scripts %}
 <script>
     const questions = {{ questions | tojson }};
+    const hasCompleted = {{ has_completed | tojson }};
     let currentQuestion = 0;
     let answers = [];
 
-    loadProgress();
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Quiz page loaded');
+        
+        // Handle retake quiz button
+        const retakeBtn = document.getElementById('retakeQuizBtn');
+        if (retakeBtn) {
+            retakeBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to retake the quiz? This will clear your previous results.')) {
+                    fetch('/clear_quiz_progress', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            showToast('Quiz progress cleared. Starting fresh quiz...', 'success');
+                            setTimeout(() => window.location.reload(), 1000);
+                        } else {
+                            showToast('Error clearing quiz progress. Please try again.', 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error clearing quiz progress:', error);
+                        showToast('Error clearing quiz progress. Please try again.', 'error');
+                    });
+                }
+            });
+        }
+
+        // Initialize quiz if not completed
+        if (!hasCompleted) {
+            loadProgress();
+            setupQuiz();
+        }
+    });
+
+    function setupQuiz() {
+        console.log('Setting up quiz...');
+        
+        // Setup radio interactions
+        const radioItems = document.querySelectorAll('.radio-item');
+        radioItems.forEach((item, index) => {
+            const radio = item.querySelector('.radio-input');
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                radio.checked = true;
+                updateRadioSelection();
+            });
+            radio.addEventListener('change', () => {
+                updateRadioSelection();
+            });
+        });
+
+        // Setup keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key >= '1' && e.key <= '5') {
+                const radio = document.querySelector(`input[value="${e.key}"]`);
+                if (radio) {
+                    radio.checked = true;
+                    updateRadioSelection();
+                }
+            } else if (e.key === 'Enter') {
+                const nextBtn = document.getElementById('nextBtn');
+                if (nextBtn && !nextBtn.disabled) {
+                    nextBtn.click();
+                }
+            }
+        });
+
+        // Setup next/previous buttons
+        const nextBtn = document.getElementById('nextBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        
+        if (nextBtn) {
+            nextBtn.addEventListener('click', handleNext);
+        }
+        
+        if (prevBtn) {
+            prevBtn.addEventListener('click', handlePrevious);
+        }
+    }
+
+    function handleNext() {
+        console.log('Next button clicked');
+        const selectedAnswer = document.querySelector('input[name="answer"]:checked');
+        if (!selectedAnswer) {
+            showToast('Please select an answer before proceeding.', 'error');
+            return;
+        }
+
+        saveCurrentAnswer();
+
+        if (currentQuestion < questions.length - 1) {
+            currentQuestion++;
+            updateUI();
+            loadCurrentAnswer();
+        } else {
+            if (answers.length < questions.length) {
+                showToast('Please answer all questions before submitting.', 'error');
+                return;
+            }
+            
+            showToast('Quiz completed! Analyzing your responses...', 'success');
+            
+            fetch('/calculate_results', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ answers: answers })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (typeof updateNavigation === 'function') {
+                    updateNavigation(true, null, false);
+                }
+                setTimeout(() => window.location.href = '/results', 1000);
+            })
+            .catch(error => {
+                console.error('Error calculating results:', error);
+                setTimeout(() => window.location.href = '/results', 1000);
+            });
+        }
+    }
+
+    function handlePrevious() {
+        console.log('Previous button clicked');
+        saveCurrentAnswer();
+        
+        if (currentQuestion > 0) {
+            currentQuestion--;
+            updateUI();
+            loadCurrentAnswer();
+        }
+    }
 
     function loadProgress() {
         fetch('/get_quiz_progress')
@@ -91,23 +246,40 @@
     }
 
     function updateUI() {
-        document.getElementById('questionCounter').textContent = 
-            `Question ${currentQuestion + 1} of ${questions.length}`;
+        const questionCounter = document.getElementById('questionCounter');
+        const progressBar = document.getElementById('progressBar');
+        const questionText = document.getElementById('questionText');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
         
-        const progress = ((currentQuestion + 1) / questions.length) * 100;
-        document.getElementById('progressBar').style.width = `${progress}%`;
+        if (questionCounter) {
+            questionCounter.textContent = `Question ${currentQuestion + 1} of ${questions.length}`;
+        }
         
-        document.getElementById('questionText').textContent = questions[currentQuestion].question;
+        if (progressBar) {
+            const progress = ((currentQuestion + 1) / questions.length) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
         
-        document.getElementById('prevBtn').disabled = currentQuestion === 0;
-        document.getElementById('nextBtn').textContent = 
-            currentQuestion === questions.length - 1 ? 'Submit Quiz' : 'Next';
+        if (questionText) {
+            questionText.textContent = questions[currentQuestion].question;
+        }
+        
+        if (prevBtn) {
+            prevBtn.disabled = currentQuestion === 0;
+        }
+        
+        if (nextBtn) {
+            nextBtn.textContent = currentQuestion === questions.length - 1 ? 'Submit Quiz' : 'Next';
+        }
         
         updateProgressDots();
     }
 
     function updateProgressDots() {
         const dotsContainer = document.getElementById('progressDots');
+        if (!dotsContainer) return;
+        
         dotsContainer.innerHTML = '';
         
         for (let i = 0; i < questions.length; i++) {
@@ -155,75 +327,8 @@
         return true;
     }
 
-    document.getElementById('nextBtn').addEventListener('click', () => {
-        const selectedAnswer = document.querySelector('input[name="answer"]:checked');
-        if (!selectedAnswer) {
-            showToast('Please select an answer before proceeding.', 'error');
-            return;
-        }
-
-        saveCurrentAnswer();
-
-        if (currentQuestion < questions.length - 1) {
-            currentQuestion++;
-            updateUI();
-            loadCurrentAnswer();
-        } else {
-            if (answers.length < questions.length) {
-                showToast('Please answer all questions before submitting.', 'error');
-                return;
-            }
-            
-            showToast('Quiz completed! Analyzing your responses...', 'success');
-            
-            fetch('/calculate_results', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ answers: answers })
-            })
-            .then(response => response.json())
-            .then(data => {
-                setTimeout(() => window.location.href = '/results', 1000);
-            })
-            .catch(error => {
-                console.error('Error calculating results:', error);
-                setTimeout(() => window.location.href = '/results', 1000);
-            });
-        }
-    });
-
-    document.getElementById('prevBtn').addEventListener('click', () => {
-        saveCurrentAnswer();
-        
-        if (currentQuestion > 0) {
-            currentQuestion--;
-            updateUI();
-            loadCurrentAnswer();
-        }
-    });
-
-    function setupRadioInteractions() {
-        const radioItems = document.querySelectorAll('.radio-item');
-        
-        radioItems.forEach(item => {
-            const radio = item.querySelector('.radio-input');
-            const label = item.querySelector('.radio-label');
-            
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                radio.checked = true;
-                updateRadioSelection();
-            });
-            
-            radio.addEventListener('change', () => {
-                updateRadioSelection();
-            });
-        });
-    }
-
     function updateRadioSelection() {
         const radioItems = document.querySelectorAll('.radio-item');
-        
         radioItems.forEach(item => {
             const radio = item.querySelector('.radio-input');
             if (radio.checked) {
@@ -233,37 +338,5 @@
             }
         });
     }
-
-    function addKeyboardNavigation() {
-        document.addEventListener('keydown', (e) => {
-            if (e.key >= '1' && e.key <= '5') {
-                const value = e.key;
-                const radio = document.querySelector(`input[value="${value}"]`);
-                if (radio) {
-                    radio.checked = true;
-                    updateRadioSelection();
-                }
-            } else if (e.key === 'Enter') {
-                const nextBtn = document.getElementById('nextBtn');
-                if (nextBtn && !nextBtn.disabled) {
-                    nextBtn.click();
-                }
-            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-                const prevBtn = document.getElementById('prevBtn');
-                if (prevBtn && !prevBtn.disabled) {
-                    prevBtn.click();
-                }
-            } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-                const nextBtn = document.getElementById('nextBtn');
-                if (nextBtn && !nextBtn.disabled) {
-                    nextBtn.click();
-                }
-            }
-        });
-    }
-
-    updateUI();
-    setupRadioInteractions();
-    addKeyboardNavigation();
 </script>
 {% endblock %}

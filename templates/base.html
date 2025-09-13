@@ -113,6 +113,92 @@
             color: var(--accent);
         }
 
+        .nav-auth {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .profile-dropdown {
+            position: relative;
+        }
+
+        .profile-trigger {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: var(--radius);
+            transition: background-color 0.2s;
+        }
+
+        .profile-trigger:hover {
+            background-color: var(--muted);
+        }
+
+        .user-name {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--muted-foreground);
+        }
+
+        .dropdown-arrow {
+            color: var(--muted-foreground);
+            transition: transform 0.2s;
+        }
+
+        .profile-trigger.active .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 120px;
+            z-index: 1000;
+            margin-top: 0.25rem;
+        }
+
+        .dropdown-item {
+            display: block;
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: none;
+            border: none;
+            text-align: left;
+            font-size: 0.875rem;
+            color: var(--foreground);
+            cursor: pointer;
+            transition: background-color 0.2s;
+            border-radius: var(--radius);
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--muted);
+        }
+
+        .dropdown-item:first-child {
+            border-radius: var(--radius) var(--radius) 0 0;
+        }
+
+        .dropdown-item:last-child {
+            border-radius: 0 0 var(--radius) var(--radius);
+        }
+
         /* Button Styles */
         .btn {
             display: inline-flex;
@@ -343,13 +429,28 @@
 
             <div class="nav-links">
                 <a href="/" class="nav-link">Home</a>
-                <a href="/quiz" class="nav-link">Quiz</a>
-                <a href="/results" class="nav-link">Results</a>
+                <a href="/quiz" class="nav-link" id="quizLink" style="display: none;">Quiz</a>
+                <a href="/results" class="nav-link" id="resultsLink" style="display: none;">Results</a>
                 <a href="/colleges" class="nav-link">Colleges</a>
                 <a href="#contact" class="nav-link">Contact Us</a>
             </div>
 
-            <a href="/auth" class="btn btn-primary hidden md:inline-flex">Get Started</a>
+            <div class="nav-auth">
+                <a href="/auth" class="btn btn-primary hidden md:inline-flex" id="loginBtn">Get Started</a>
+                <div class="user-menu hidden" id="userMenu">
+                    <div class="profile-dropdown">
+                        <button class="profile-trigger" id="profileTrigger">
+                            <span class="user-name" id="userName"></span>
+                            <svg class="dropdown-arrow" width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                                <path d="M6 8L2 4h8L6 8z"/>
+                            </svg>
+                        </button>
+                        <div class="dropdown-menu hidden" id="dropdownMenu">
+                            <button class="dropdown-item" id="logoutBtn">Logout</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </nav>
 
@@ -395,32 +496,117 @@
             }, 3000);
         }
 
-        function checkAutoLogin() {
-            const rememberedUser = localStorage.getItem('rememberedUser');
-            if (rememberedUser && window.location.pathname === '/') {
-                try {
-                    const userData = JSON.parse(rememberedUser);
-                    
-                    fetch('/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ email: userData.email, password: userData.password, rememberMe: true })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            showToast('Welcome back! Auto-login successful.', 'success');
-                            setTimeout(() => window.location.href = '/quiz', 1000);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Auto-login error:', error);
-                    });
-                } catch (error) {
-                    console.error('Error parsing remembered user data:', error);
-                    localStorage.removeItem('rememberedUser');
+        // Auto-login functionality removed
+
+        function updateNavigation(isLoggedIn, userName = null, isFirstTime = false) {
+            const loginBtn = document.getElementById('loginBtn');
+            const userMenu = document.getElementById('userMenu');
+            const userNameElement = document.getElementById('userName');
+            const quizLink = document.getElementById('quizLink');
+            const resultsLink = document.getElementById('resultsLink');
+            
+            console.log('updateNavigation called with:', { isLoggedIn, userName, isFirstTime });
+            console.log('Elements found:', { loginBtn: !!loginBtn, userMenu: !!userMenu, userNameElement: !!userNameElement });
+            
+            if (isLoggedIn) {
+                // Hide login button, show user menu
+                if (loginBtn) {
+                    loginBtn.style.display = 'none';
+                    loginBtn.classList.add('hidden');
+                    console.log('Login button hidden, classes:', loginBtn.className, 'display:', loginBtn.style.display);
+                } else {
+                    console.log('Login button not found!');
                 }
+                if (userMenu) {
+                    userMenu.style.display = 'flex';
+                    userMenu.classList.remove('hidden');
+                    console.log('User menu shown, classes:', userMenu.className, 'display:', userMenu.style.display);
+                } else {
+                    console.log('User menu not found!');
+                }
+                if (userName && userNameElement) {
+                    userNameElement.textContent = userName;
+                    console.log('User name set to:', userName);
+                }
+                
+                // Always show quiz and results links when logged in
+                if (quizLink) quizLink.style.display = 'block';
+                if (resultsLink) resultsLink.style.display = 'block';
+            } else {
+                // Show login button, hide user menu
+                if (loginBtn) {
+                    loginBtn.style.display = 'inline-flex';
+                    loginBtn.classList.remove('hidden');
+                    console.log('Login button shown, classes:', loginBtn.className, 'display:', loginBtn.style.display);
+                }
+                if (userMenu) {
+                    userMenu.style.display = 'none';
+                    userMenu.classList.add('hidden');
+                    console.log('User menu hidden, classes:', userMenu.className, 'display:', userMenu.style.display);
+                }
+                if (quizLink) quizLink.style.display = 'none';
+                if (resultsLink) resultsLink.style.display = 'none';
             }
+        }
+
+        function logout() {
+            fetch('/logout', {
+                method: 'GET',
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (response.ok) {
+                    updateNavigation(false);
+                    showToast('Logged out successfully!', 'success');
+                    setTimeout(() => window.location.href = '/', 1000);
+                } else {
+                    showToast('Error logging out. Please try again.', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Logout error:', error);
+                showToast('Error logging out. Please try again.', 'error');
+            });
+        }
+
+        function checkLoginStatus() {
+            console.log('Checking login status...');
+            fetch('/check_login_status')
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Login status response:', data);
+                    if (data.logged_in) {
+                        console.log('User is logged in, updating navigation...');
+                        updateNavigation(true, data.user_name, data.is_first_time);
+                    } else {
+                        console.log('User is not logged in, updating navigation...');
+                        updateNavigation(false);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking login status:', error);
+                });
+        }
+
+        function toggleDropdown() {
+            const dropdown = document.getElementById('dropdownMenu');
+            const trigger = document.getElementById('profileTrigger');
+            
+            if (dropdown.classList.contains('hidden')) {
+                dropdown.classList.remove('hidden');
+                trigger.classList.add('active');
+            } else {
+                dropdown.classList.add('hidden');
+                trigger.classList.remove('active');
+            }
+        }
+
+        function closeDropdown() {
+            const dropdown = document.getElementById('dropdownMenu');
+            const trigger = document.getElementById('profileTrigger');
+            
+            dropdown.classList.add('hidden');
+            trigger.classList.remove('active');
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -433,7 +619,39 @@
                 }
             });
 
-            checkAutoLogin();
+            // Add profile dropdown event listeners
+            const profileTrigger = document.getElementById('profileTrigger');
+            const logoutBtn = document.getElementById('logoutBtn');
+            
+            if (profileTrigger) {
+                profileTrigger.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    toggleDropdown();
+                });
+            }
+            
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    logout();
+                });
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                const dropdown = document.getElementById('dropdownMenu');
+                const trigger = document.getElementById('profileTrigger');
+                
+                if (dropdown && !dropdown.contains(e.target) && !trigger.contains(e.target)) {
+                    closeDropdown();
+                }
+            });
+
+            // Check login status on page load with delay
+            setTimeout(() => {
+                console.log('DOM loaded, checking login status...');
+                checkLoginStatus();
+            }, 100);
         });
     </script>
 
